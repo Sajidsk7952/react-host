@@ -25,7 +25,10 @@ const ForkTsCheckerWebpackPlugin =
     ? require('react-dev-utils/ForkTsCheckerWarningWebpackPlugin')
     : require('react-dev-utils/ForkTsCheckerWebpackPlugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-
+//modificated code start
+const { ModuleFederationPlugin } = require('webpack').container;
+const deps = require('../package.json').dependencies;
+//modificated code ends
 const createEnvironmentHash = require('./webpack/persistentCache/createEnvironmentHash');
 
 // Source maps are resource heavy and can cause out of memory issue for large source files.
@@ -219,7 +222,8 @@ module.exports = function (webpackEnv) {
       // webpack uses `publicPath` to determine where the app is being served from.
       // It requires a trailing slash, or the file assets will get an incorrect path.
       // We inferred the "public path" (such as / or /my-project) from homepage.
-      publicPath: paths.publicUrlOrPath,
+      // publicPath: paths.publicUrlOrPath,
+      publicPath : "auto",
       // Point sourcemap entries to original disk location (format as URL on Windows)
       devtoolModuleFilenameTemplate: isEnvProduction
         ? info =>
@@ -334,6 +338,18 @@ module.exports = function (webpackEnv) {
           babelRuntimeEntryHelpers,
           babelRuntimeRegenerator,
         ]),
+        new ModuleFederationPlugin({
+          name : "host",
+          remotes : {
+            remoteAapp : `remoteA@${process.env.REMOTE_A_URL}/remoteAremoteEntry.js`,
+            remoteBapp : `remoteB@${process.env.REMOTE_B_URL}/remoteBremoteEntry.js`,
+          },
+          shared : {
+            ...deps,
+            "react" : {singleton : true, requiredVersion : deps['react']},
+            "react-dom" : {singleton : true, requiredVersion : deps['react-dom']},
+          }
+        })
       ],
     },
     module: {
